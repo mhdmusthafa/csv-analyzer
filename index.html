@@ -1,0 +1,1602 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Analyzer - Survey Response Dashboard</title>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        outfit: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f4f8',
+                            100: '#dbe3ed',
+                            500: '#53739b',
+                            700: '#154069',
+                            800: '#0f2f4e',
+                            900: '#000000',
+                            accent: '#f35000'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Chart.js for premium visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PapaParse for high-performance CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- Lucide Icons via CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style type="text/css">
+        /* Custom styles for animations, prints, and scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .transition-theme {
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, fill 0.3s ease;
+        }
+        
+        /* Print-specific layout: optimizes page for clean PDF reports */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-grid {
+                display: block !important;
+            }
+            .print-card {
+                page-break-inside: avoid;
+                margin-bottom: 2rem;
+                border: 1px solid #e2e8f0 !important;
+                box-shadow: none !important;
+            }
+        }
+        
+        /* Glassmorphism utility card */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .dark .glass-panel {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="h-full bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans transition-theme flex overflow-hidden">
+
+    <!-- SIDEBAR: Main App Navigation (Hidden on print) -->
+    <aside class="no-print w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-theme shrink-0 hidden md:flex">
+        <!-- Logo Header -->
+        <div class="h-20 flex items-center px-6 border-b border-slate-100 dark:border-slate-800 gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-700 to-brand-500 flex items-center justify-center text-white shadow-lg">
+                <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h1 class="font-outfit font-bold text-lg leading-tight tracking-tight text-slate-900 dark:text-white">CSV Analyzer</h1>
+                <span class="text-xs font-semibold text-brand-500">v1.1 Premium</span>
+            </div>
+        </div>
+
+        <!-- Uploader Banner (Mini) -->
+        <div class="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+            <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl cursor-pointer bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+                <div class="flex flex-col items-center justify-center pt-5 pb-6 text-center px-2">
+                    <i data-lucide="upload-cloud" class="w-6 h-6 mb-1 text-slate-400 dark:text-slate-500"></i>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Upload CSV file</p>
+                    <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Drag & drop here</p>
+                </div>
+                <input type="file" id="csvFilePicker" accept=".csv" class="hidden" />
+            </label>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-grow p-4 space-y-1">
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn flex items-center gap-3 w-full px-4 py-3 text-sm font-medium rounded-xl transition-all bg-brand-50 dark:bg-brand-700/20 text-brand-700 dark:text-brand-500">
+                <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                Dashboard
+            </button>
+            <button onclick="switchTab('explorer')" id="nav-explorer" class="nav-btn flex items-center gap-3 w-full px-4 py-3 text-sm font-medium rounded-xl transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white">
+                <i data-lucide="table-properties" class="w-4 h-4"></i>
+                Data Explorer
+            </button>
+            <button onclick="switchTab('text-analysis')" id="nav-text-analysis" class="nav-btn flex items-center gap-3 w-full px-4 py-3 text-sm font-medium rounded-xl transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white">
+                <i data-lucide="languages" class="w-4 h-4"></i>
+                Text Analysis
+            </button>
+            <button onclick="switchTab('customizer')" id="nav-customizer" class="nav-btn flex items-center gap-3 w-full px-4 py-3 text-sm font-medium rounded-xl transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white">
+                <i data-lucide="palette" class="w-4 h-4"></i>
+                Customizer
+            </button>
+        </nav>
+
+        <!-- Theme Toggle & Printing -->
+        <div class="p-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+            <button onclick="window.print()" class="w-full flex items-center justify-center gap-2 py-2 px-4 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-xs font-semibold">
+                <i data-lucide="printer" class="w-3.5 h-3.5"></i> Print PDF Report
+            </button>
+            
+            <div class="flex items-center justify-between px-2 py-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Dark Mode</span>
+                <button onclick="toggleTheme()" class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-slate-300 dark:bg-brand-500" id="theme-switch" role="switch" aria-checked="false">
+                    <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out translate-x-0 dark:translate-x-5 flex items-center justify-center">
+                        <i data-lucide="sun" class="w-3.5 h-3.5 text-amber-500 dark:hidden"></i>
+                        <i data-lucide="moon" class="w-3.5 h-3.5 text-brand-700 hidden dark:block"></i>
+                    </span>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MOBILE NAVIGATION BAR (Hidden on Desktop & Print) -->
+    <div class="no-print md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center justify-around py-2 z-50 transition-theme shadow-lg">
+        <button onclick="switchTab('dashboard')" id="mobile-nav-dashboard" class="flex flex-col items-center gap-1 text-xs font-medium text-brand-700 dark:text-brand-500">
+            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+            Dashboard
+        </button>
+        <button onclick="switchTab('explorer')" id="mobile-nav-explorer" class="flex flex-col items-center gap-1 text-xs font-medium text-slate-400">
+            <i data-lucide="table-properties" class="w-5 h-5"></i>
+            Explorer
+        </button>
+        <button onclick="switchTab('text-analysis')" id="mobile-nav-text-analysis" class="flex flex-col items-center gap-1 text-xs font-medium text-slate-400">
+            <i data-lucide="languages" class="w-5 h-5"></i>
+            Text
+        </button>
+        <button onclick="switchTab('customizer')" id="mobile-nav-customizer" class="flex flex-col items-center gap-1 text-xs font-medium text-slate-400">
+            <i data-lucide="palette" class="w-5 h-5"></i>
+            Styles
+        </button>
+        <button onclick="toggleTheme()" class="flex flex-col items-center gap-1 text-xs font-medium text-slate-400">
+            <i data-lucide="moon" class="w-5 h-5 hidden dark:block"></i>
+            <i data-lucide="sun" class="w-5 h-5 block dark:hidden"></i>
+            Theme
+        </button>
+    </div>
+
+    <!-- MAIN INTERFACE -->
+    <main class="flex-grow flex flex-col overflow-hidden h-full pb-16 md:pb-0">
+        
+        <!-- HEADER / CONTEXT (Hidden on print) -->
+        <header class="no-print h-20 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md flex items-center justify-between px-6 transition-theme shrink-0">
+            <div>
+                <h2 class="font-outfit font-bold text-xl text-slate-900 dark:text-white" id="dashboard-title">Survey Analysis Board</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5" id="data-status-subtitle">Displaying loaded survey responses.</p>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <!-- Mobile file uploader button -->
+                <label class="md:hidden flex items-center justify-center p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer transition-colors">
+                    <i data-lucide="upload" class="w-4.5 h-4.5"></i>
+                    <input type="file" id="csvMobilePicker" accept=".csv" class="hidden" />
+                </label>
+                <!-- Quick PDF Export (Mobile top bar) -->
+                <button onclick="window.print()" class="md:hidden p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                    <i data-lucide="printer" class="w-4.5 h-4.5"></i>
+                </button>
+                <div class="hidden sm:flex items-center gap-2 text-xs font-medium bg-brand-50 dark:bg-brand-700/10 text-brand-700 dark:text-brand-400 py-1.5 px-3 rounded-lg border border-brand-100 dark:border-brand-700/20">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Ready for analysis
+                </div>
+            </div>
+        </header>
+
+        <!-- FILTERS PANEL: Active globally (Hidden on print) -->
+        <section class="no-print bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 transition-theme shrink-0 flex flex-wrap gap-4 items-end">
+            <!-- Keyword Search -->
+            <div class="flex-grow min-w-[200px] max-w-md">
+                <label class="block text-[11px] font-bold tracking-wider uppercase text-slate-400 dark:text-slate-500 mb-1.5">Keyword Filter</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                    </span>
+                    <input type="text" id="filterKeyword" oninput="applyFilters()" placeholder="Search answers or timestamps..." class="block w-full pl-9 pr-4 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all text-slate-800 dark:text-slate-100" />
+                </div>
+            </div>
+
+            <!-- Date Range Filters -->
+            <div class="w-44">
+                <label class="block text-[11px] font-bold tracking-wider uppercase text-slate-400 dark:text-slate-500 mb-1.5">Start Date</label>
+                <input type="date" id="filterStartDate" onchange="applyFilters()" class="block w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-800 dark:text-slate-100" />
+            </div>
+            
+            <div class="w-44">
+                <label class="block text-[11px] font-bold tracking-wider uppercase text-slate-400 dark:text-slate-500 mb-1.5">End Date</label>
+                <input type="date" id="filterEndDate" onchange="applyFilters()" class="block w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-800 dark:text-slate-100" />
+            </div>
+
+            <!-- Dynamic Question Filtering Dropdown Injection -->
+            <div id="dynamicFiltersContainer" class="flex flex-wrap gap-4 items-end flex-grow">
+                <!-- Dynamically populated select controls based on categorical headers -->
+            </div>
+
+            <!-- Reset Filters -->
+            <div>
+                <button onclick="resetFilters()" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold rounded-xl transition-colors h-[38px] flex items-center justify-center gap-1.5">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Clear Filters
+                </button>
+            </div>
+        </section>
+
+        <!-- CONTAINER FOR VIEWS (TABS) -->
+        <div class="flex-grow overflow-y-auto p-6 space-y-6">
+            
+            <!-- KPI / STATS BANNER: Global Summary -->
+            <section class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="kpi-banner">
+                <!-- Total Entries Card -->
+                <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-theme flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-semibold text-slate-400 dark:text-slate-500 tracking-wide uppercase">Total Responses</span>
+                        <h3 class="font-outfit font-bold text-3xl mt-1 text-slate-900 dark:text-white" id="stat-total">0</h3>
+                        <p class="text-[10px] text-slate-400 mt-0.5" id="stat-total-sub">Full parsed entries</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-500 dark:text-indigo-400 flex items-center justify-center">
+                        <i data-lucide="users" class="w-6 h-6"></i>
+                    </div>
+                </div>
+                
+                <!-- Wound Infection encountered often indicator -->
+                <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-theme flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-semibold text-slate-400 dark:text-slate-500 tracking-wide uppercase">Infection Rate</span>
+                        <h3 class="font-outfit font-bold text-3xl mt-1 text-slate-900 dark:text-white" id="stat-infection">0%</h3>
+                        <p class="text-[10px] text-slate-400 mt-0.5" id="stat-infection-sub">"Often" or "Very Often"</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-500 dark:text-rose-400 flex items-center justify-center">
+                        <i data-lucide="activity" class="w-6 h-6"></i>
+                    </div>
+                </div>
+
+                <!-- Positive outcomes agreement rate -->
+                <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-theme flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-semibold text-slate-400 dark:text-slate-500 tracking-wide uppercase">Patch Utility</span>
+                        <h3 class="font-outfit font-bold text-3xl mt-1 text-slate-900 dark:text-white" id="stat-outcomes">0%</h3>
+                        <p class="text-[10px] text-slate-400 mt-0.5">Yes to outcome improvement</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-500 dark:text-emerald-400 flex items-center justify-center">
+                        <i data-lucide="check-circle" class="w-6 h-6"></i>
+                    </div>
+                </div>
+
+                <!-- Most common concern -->
+                <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-theme flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-semibold text-slate-400 dark:text-slate-500 tracking-wide uppercase">Top Concern</span>
+                        <h3 class="font-outfit font-bold text-lg leading-tight mt-2 text-slate-900 dark:text-white truncate max-w-[150px]" id="stat-concern">-</h3>
+                        <p class="text-[10px] text-slate-400 mt-0.5">Primary technology issue</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-500 dark:text-amber-400 flex items-center justify-center">
+                        <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 1: OVERVIEW DASHBOARD (Grid of dynamic charts) -->
+            <section id="tab-dashboard-view" class="tab-view block space-y-6">
+                <!-- Dashboard Filters summary notification banner -->
+                <div id="filterNotification" class="hidden no-print items-center justify-between p-3.5 bg-brand-50/50 dark:bg-brand-900/10 border border-brand-200/50 dark:border-brand-800/30 rounded-xl text-xs font-semibold text-brand-700 dark:text-brand-400">
+                    <span class="flex items-center gap-2">
+                        <i data-lucide="filter" class="w-4 h-4"></i>
+                        Active filtering: Showing <span id="filtered-count-indicator">0</span> of <span id="total-count-indicator">0</span> rows.
+                    </span>
+                    <button onclick="resetFilters()" class="text-brand-500 dark:text-brand-400 underline hover:no-underline">Show all</button>
+                </div>
+
+                <!-- Charts Layout Grid -->
+                <div id="dashboard-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 print-grid">
+                    <!-- Dynamic chart modules injected here -->
+                </div>
+            </section>
+
+            <!-- TAB 2: DATA EXPLORER (CRUD / Paginated Table) -->
+            <section id="tab-explorer-view" class="tab-view hidden space-y-4">
+                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden flex flex-col transition-theme">
+                    <!-- Explorer controls header -->
+                    <div class="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-wrap gap-4 items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold text-slate-400 dark:text-slate-500">Show</span>
+                            <select id="tablePageSize" onchange="changePageSize()" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-lg text-xs py-1.5 px-3 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                                <option value="5">5 rows</option>
+                                <option value="10" selected>10 rows</option>
+                                <option value="25">25 rows</option>
+                                <option value="50">50 rows</option>
+                            </select>
+                            <span class="text-xs font-semibold text-slate-400 dark:text-slate-500">entries</span>
+                        </div>
+                        
+                        <div class="flex items-center gap-2">
+                            <button onclick="downloadFilteredCSV()" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors text-xs font-semibold">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i> Export CSV
+                            </button>
+                            <button onclick="downloadFilteredJSON()" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg transition-colors text-xs font-semibold">
+                                <i data-lucide="file-json" class="w-3.5 h-3.5"></i> Export JSON
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Table Element Wrapper -->
+                    <div class="overflow-x-auto w-full">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead class="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                <tr id="table-head-row">
+                                    <!-- Populated dynamically -->
+                                </tr>
+                            </thead>
+                            <tbody id="table-body" class="divide-y divide-slate-100 dark:divide-slate-800 text-slate-600 dark:text-slate-300">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination Footer -->
+                    <div class="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-wrap gap-4 items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
+                        <span id="table-page-info">Showing 0 to 0 of 0 entries</span>
+                        <div class="flex items-center gap-1" id="table-pagination">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: TEXT ANALYSIS / WORD CLOUD -->
+            <section id="tab-text-analysis-view" class="tab-view hidden space-y-6">
+                <!-- Text Selector Dropdown -->
+                <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between flex-wrap gap-4">
+                    <div>
+                        <h3 class="font-outfit font-bold text-lg text-slate-900 dark:text-white">Qualitative Text Analyzer</h3>
+                        <p class="text-xs text-slate-400 dark:text-slate-500">Processes and frequencies keywords from unstructured text answers.</p>
+                    </div>
+                    <div class="w-72">
+                        <label class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 mb-1">Target Text Column</label>
+                        <select id="textColumnSelect" onchange="runTextAnalysis()" class="block w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-xl py-2 px-3 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                            <!-- Dynamic text headers injected -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Word Cloud & Detail Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Word Bubble Cloud Card -->
+                    <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm lg:col-span-2 space-y-4">
+                        <h4 class="font-outfit font-bold text-sm tracking-wide uppercase text-slate-400">Keyword Density Cloud</h4>
+                        <div id="word-cloud-container" class="h-80 border border-slate-100 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-950/20 p-6 flex flex-wrap gap-3 items-center justify-center overflow-y-auto">
+                            <!-- Processed word tokens injected -->
+                        </div>
+                    </div>
+
+                    <!-- Frequencies List Card -->
+                    <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 flex flex-col h-96 lg:h-auto">
+                        <h4 class="font-outfit font-bold text-sm tracking-wide uppercase text-slate-400">Keyword Rank</h4>
+                        <div class="overflow-y-auto flex-grow pr-1" id="word-frequency-list">
+                            <!-- Injected list elements -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- raw comments search deck -->
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between flex-wrap gap-4">
+                        <h4 class="font-outfit font-bold text-sm tracking-wide uppercase text-slate-400">Response Feed (<span id="total-text-feed-rows">0</span> comments)</h4>
+                    </div>
+                    <div id="text-feed-deck" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[30rem] overflow-y-auto pr-2">
+                        <!-- Raw comment card blocks injected here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: CUSTOMIZER -->
+            <section id="tab-customizer-view" class="tab-view hidden space-y-6">
+                <!-- Color Theme Grid -->
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                    <div>
+                        <h3 class="font-outfit font-bold text-lg text-slate-900 dark:text-white">Chart Color Palette Customizer</h3>
+                        <p class="text-xs text-slate-400 dark:text-slate-500">Pick or create a tailored scheme to fit your branding presentation.</p>
+                    </div>
+
+                    <!-- Color Presets -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <button onclick="applyColorPalettePreset('classic')" class="palette-preset-card p-4 border rounded-xl hover:border-brand-500 transition-colors text-left flex flex-col justify-between h-24 bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700">
+                            <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Classic Medical</span>
+                            <div class="flex gap-1.5 mt-2">
+                                <span class="w-6 h-6 rounded bg-[#000000]"></span>
+                                <span class="w-6 h-6 rounded bg-[#154069]"></span>
+                                <span class="w-6 h-6 rounded bg-[#53739b]"></span>
+                                <span class="w-6 h-6 rounded bg-[#f35000]"></span>
+                                <span class="w-6 h-6 rounded bg-[#e2e8f0] border border-slate-300"></span>
+                            </div>
+                        </button>
+
+                        <button onclick="applyColorPalettePreset('emerald')" class="palette-preset-card p-4 border rounded-xl hover:border-brand-500 transition-colors text-left flex flex-col justify-between h-24 bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700">
+                            <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Forest Emerald</span>
+                            <div class="flex gap-1.5 mt-2">
+                                <span class="w-6 h-6 rounded bg-[#064e3b]"></span>
+                                <span class="w-6 h-6 rounded bg-[#059669]"></span>
+                                <span class="w-6 h-6 rounded bg-[#34d399]"></span>
+                                <span class="w-6 h-6 rounded bg-[#a7f3d0]"></span>
+                                <span class="w-6 h-6 rounded bg-[#f0fdf4]"></span>
+                            </div>
+                        </button>
+
+                        <button onclick="applyColorPalettePreset('cyber')" class="palette-preset-card p-4 border rounded-xl hover:border-brand-500 transition-colors text-left flex flex-col justify-between h-24 bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700">
+                            <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Neon Cyberpunk</span>
+                            <div class="flex gap-1.5 mt-2">
+                                <span class="w-6 h-6 rounded bg-[#0f172a]"></span>
+                                <span class="w-6 h-6 rounded bg-[#a855f7]"></span>
+                                <span class="w-6 h-6 rounded bg-[#06b6d4]"></span>
+                                <span class="w-6 h-6 rounded bg-[#f43f5e]"></span>
+                                <span class="w-6 h-6 rounded bg-[#facc15]"></span>
+                            </div>
+                        </button>
+
+                        <button onclick="applyColorPalettePreset('cool')" class="palette-preset-card p-4 border rounded-xl hover:border-brand-500 transition-colors text-left flex flex-col justify-between h-24 bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700">
+                            <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Cool Tech</span>
+                            <div class="flex gap-1.5 mt-2">
+                                <span class="w-6 h-6 rounded bg-[#1e1b4b]"></span>
+                                <span class="w-6 h-6 rounded bg-[#4f46e5]"></span>
+                                <span class="w-6 h-6 rounded bg-[#0ea5e9]"></span>
+                                <span class="w-6 h-6 rounded bg-[#38bdf8]"></span>
+                                <span class="w-6 h-6 rounded bg-[#e0f2fe]"></span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- Custom color picker -->
+                    <div class="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Or Design a Custom Scheme</span>
+                        <div class="flex flex-wrap gap-4 items-center">
+                            <div class="flex gap-2" id="customColorPickerRow">
+                                <!-- Generated input colors -->
+                            </div>
+                            <button onclick="saveCustomColors()" class="px-5 py-2.5 bg-brand-700 dark:bg-brand-500 text-white rounded-xl hover:bg-brand-800 dark:hover:bg-brand-600 transition-colors text-xs font-semibold shadow">
+                                Apply Custom Palette
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Layout configuration card -->
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                    <div>
+                        <h3 class="font-outfit font-bold text-lg text-slate-900 dark:text-white">Grid Configurations</h3>
+                        <p class="text-xs text-slate-400 dark:text-slate-500">Configure visual distributions on larger desktop screens.</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <button onclick="changeChartGridColumns(1)" id="grid-col-btn-1" class="px-4 py-2 border rounded-xl text-xs font-semibold transition-colors bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                            1 Column
+                        </button>
+                        <button onclick="changeChartGridColumns(2)" id="grid-col-btn-2" class="px-4 py-2 border rounded-xl text-xs font-semibold transition-colors bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                            2 Columns
+                        </button>
+                        <button onclick="changeChartGridColumns(3)" id="grid-col-btn-3" class="px-4 py-2 border rounded-xl text-xs font-semibold transition-colors bg-brand-700 dark:bg-brand-500 text-white border-transparent">
+                            3 Columns
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- JS LOGIC CODE -->
+    <script>
+        // Custom color schemas
+        const palettes = {
+            classic: ['#000000', '#154069', '#53739b', '#f35000', '#ffffff'],
+            emerald: ['#064e3b', '#059669', '#34d399', '#a7f3d0', '#f0fdf4'],
+            cyber: ['#0f172a', '#a855f7', '#06b6d4', '#f43f5e', '#facc15'],
+            cool: ['#1e1b4b', '#4f46e5', '#0ea5e9', '#38bdf8', '#e0f2fe']
+        };
+
+        // Current application state parameters
+        let rawDataset = [];
+        let filteredDataset = [];
+        let headers = [];
+        let categories = [];
+        let openTexts = [];
+        let chartInstances = {};
+        let activeTab = 'dashboard';
+        let currentPalette = [...palettes.classic];
+        let tablePage = 1;
+        let tablePageSize = 10;
+        let tableSortColumn = '';
+        let tableSortDir = 'asc';
+        let chartGridColumns = 3;
+        
+        // Active dynamic filter values
+        let activeFilters = {
+            keyword: '',
+            startDate: '',
+            endDate: '',
+            categorical: {} // key column : value chosen
+        };
+
+        // Word Cloud Stop Words array (English)
+        const stopWords = ['a','about','above','after','again','against','all','am','an','and','any','are','arent','as','at','be','because','been','before','being','below','between','both','but','by','cant','cannot','could','couldnt','did','didnt','do','does','doesnt','doing','dont','down','during','each','few','for','from','further','had','hadnt','has','hasnt','have','havent','having','he','hed','hell','hes','her','here','heres','hers','herself','him','himself','his','how','hows','i','id','ill','im','ive','if','in','into','is','isnt','it','its','itself','lets','me','more','most','mustnt','my','myself','no','nor','not','of','off','on','once','only','or','other','ought','our','ours','ourselves','out','over','own','same','shant','she','shed','shell','shes','should','shouldnt','so','some','such','than','that','thats','the','their','theirs','them','themselves','then','there','theres','these','they','theyd','theyll','theyes','theyve','this','those','through','to','too','under','until','up','very','was','wasnt','we','wed','well','were','weve','werent','what','whats','when','whens','where','wheres','which','while','who','whos','whom','why','whys','with','wont','would','wouldnt','you','youd','youll','youre','youve','your','yours','yourself','yourselves'];
+
+        // --- HARDCODED DEFAULT CSV DATA ---
+        const defaultCsvData = `Timestamp,1)How often do you encounter wound infections detected late during follow-up?,"2)In your opinion, which factors make wound monitoring difficult?
+(Select all)",3)Do you think monitoring of wound parameters could improve patient outcomes?,"A smart wound patch is being developed that measures wound parameters such as temperature, pH, and oxygen levels. The patch can be scanned using a smartphone through NFC to detect early infection.
+   4) How useful do you think such a technology would be in clinical practice?","5)If clinically validated, would you recommend this patch to patients?",6)What would be your biggest concern regarding this technology?
+2026-03-24 14:31:22,Sometimes,Patients missing follow-ups,Yes,Very useful,Yes,Cost
+2026-03-24 14:31:26,Sometimes,Infection not detected early,Yes,Very useful,Yes,Cost
+2026-03-24 14:32:20,Sometimes,Frequent dressing inspections required,Yes,Very useful,Yes,Cost
+2026-03-24 14:34:34,Sometimes,Patients missing follow-ups,Yes,Very useful,Yes,Cost
+2026-03-24 14:36:29,Rarely,Patients missing follow-ups,Yes,Very useful,Yes,Accuracy of reading
+2026-03-24 14:38:28,Often,Patients missing follow-ups,Yes,Very useful,Yes,Cost
+2026-03-24 14:51:43,Sometimes,"Infection not detected early, Lack of continuous monitoring, Patients missing follow-ups",Yes,Very useful,Yes,Accuracy of reading
+2026-03-24 16:23:44,Often,"Infection not detected early, Lack of continuous monitoring, Patients missing follow-ups, Frequent dressing inspections required",Yes,Extremely useful,Yes,Accuracy of reading
+2026-03-24 16:24:06,Often,"Infection not detected early, Lack of continuous monitoring, Patients missing follow-ups",Yes,Very useful,Yes,Cost
+2026-03-24 16:24:51,Very often,"Infection not detected early, Lack of continuous monitoring, Frequent dressing inspections required",Yes,Very useful,Maybe,Accuracy of reading
+2026-03-24 16:25:59,Sometimes,"Infection not detected early, Patients missing follow-ups",Yes,Very useful,Maybe,Cost
+2026-03-24 16:26:08,Sometimes,Frequent dressing inspections required,Yes,Very useful,Yes,Cost
+2026-03-24 16:26:56,Often,"Infection not detected early, Lack of continuous monitoring, Patients missing follow-ups",Yes,Very useful,Yes,Ease of use
+2026-03-24 16:27:28,Often,"Infection not detected early, Lack of continuous monitoring, Patients missing follow-ups, Subjective clinical assessment, Frequent dressing inspections required",Yes,Extremely useful,Yes,Accuracy of reading`;
+
+        // Canvas Background color plugin to secure transparent areas on export
+        const whiteBackgroundPlugin = {
+            id: 'customCanvasBackgroundColor',
+            beforeDraw: (chart, args, options) => {
+                const {ctx} = chart;
+                ctx.save();
+                ctx.globalCompositeOperation = 'destination-over';
+                ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#1e293b' : '#ffffff';
+                ctx.fillRect(0, 0, chart.width, chart.height);
+                ctx.restore();
+            }
+        };
+
+        // --- APP INITIALIZER ---
+        window.addEventListener('DOMContentLoaded', () => {
+            // Setup custom palette rows on settings screen
+            initCustomColorPickers();
+            
+            // Register theme switcher initial position
+            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                updateThemeToggleUI(true);
+            } else {
+                document.documentElement.classList.remove('dark');
+                updateThemeToggleUI(false);
+            }
+
+            // Parse defaultwound database
+            loadCSVDataText(defaultCsvData);
+            
+            // Listeners for CSV picks
+            document.getElementById('csvFilePicker').addEventListener('change', handleFilePicker);
+            document.getElementById('csvMobilePicker').addEventListener('change', handleFilePicker);
+            
+            // Enable lucide icons rendering
+            lucide.createIcons();
+        });
+
+        // Initialize custom palette selectors input elements
+        function initCustomColorPickers() {
+            const container = document.getElementById('customColorPickerRow');
+            container.innerHTML = '';
+            for(let i=0; i<5; i++) {
+                const picker = document.createElement('input');
+                picker.type = 'color';
+                picker.className = 'w-10 h-10 rounded-lg cursor-pointer border border-slate-300 dark:border-slate-600 bg-transparent';
+                picker.value = currentPalette[i] || '#ffffff';
+                picker.id = 'color-picker-' + i;
+                container.appendChild(picker);
+            }
+        }
+
+        // Apply dynamic presets
+        function applyColorPalettePreset(presetName) {
+            if (palettes[presetName]) {
+                currentPalette = [...palettes[presetName]];
+                // Update pickers visual state
+                for(let i=0; i<5; i++) {
+                    const picker = document.getElementById('color-picker-' + i);
+                    if (picker) picker.value = currentPalette[i] || '#ffffff';
+                }
+                saveCustomColors();
+            }
+        }
+
+        // Save custom colors from pickers
+        function saveCustomColors() {
+            for(let i=0; i<5; i++) {
+                const picker = document.getElementById('color-picker-' + i);
+                if (picker) currentPalette[i] = picker.value;
+            }
+            // Redraw charts with new colors
+            rebuildAllCharts();
+        }
+
+        // Toggle light / dark class themes
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.theme = isDark ? 'dark' : 'light';
+            updateThemeToggleUI(isDark);
+            
+            // Rebuild charts to adapt text color and backgrounds
+            rebuildAllCharts();
+        }
+
+        function updateThemeToggleUI(isDark) {
+            const switchBtn = document.getElementById('theme-switch');
+            if (isDark) {
+                switchBtn.setAttribute('aria-checked', 'true');
+            } else {
+                switchBtn.setAttribute('aria-checked', 'false');
+            }
+        }
+
+        // Tab Switch Routing
+        function switchTab(tabId) {
+            activeTab = tabId;
+            
+            // Hide all tab views
+            document.querySelectorAll('.tab-view').forEach(view => {
+                view.classList.replace('block', 'hidden');
+            });
+            
+            // Show selected view
+            const activeView = document.getElementById(`tab-${tabId}-view`);
+            if (activeView) activeView.classList.replace('hidden', 'block');
+            
+            // Reset Sidebar Buttons visual state
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.className = "nav-btn flex items-center gap-3 w-full px-4 py-3 text-sm font-medium rounded-xl transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white";
+            });
+            
+            // Highlight Desktop Active Sidebar Tab
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            if (activeBtn) {
+                activeBtn.className = "nav-btn flex items-center gap-3 w-full px-4 py-3 text-sm font-medium rounded-xl transition-all bg-brand-50 dark:bg-brand-700/20 text-brand-700 dark:text-brand-500";
+            }
+
+            // Highlight Mobile Active Tab
+            document.querySelectorAll('[id^="mobile-nav-"]').forEach(btn => {
+                btn.classList.replace('text-brand-700', 'text-slate-400');
+                btn.classList.replace('dark:text-brand-500', 'text-slate-400');
+            });
+            const mobileActiveBtn = document.getElementById(`mobile-nav-${tabId}`);
+            if (mobileActiveBtn) {
+                mobileActiveBtn.classList.replace('text-slate-400', 'text-brand-700');
+                if (window.matchMedia('(prefers-color-scheme: dark)').matches || document.documentElement.classList.contains('dark')) {
+                    mobileActiveBtn.classList.add('dark:text-brand-500');
+                }
+            }
+
+            // Run tab specific updates
+            if (tabId === 'explorer') {
+                renderDataTable();
+            } else if (tabId === 'text-analysis') {
+                runTextAnalysis();
+            }
+        }
+
+        // CSV parsing handle
+        function handleFilePicker(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Update Header status subtitle
+            document.getElementById('data-status-subtitle').textContent = `Loading file: ${file.name}...`;
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    if (results.data && results.data.length > 0) {
+                        rawDataset = results.data;
+                        document.getElementById('data-status-subtitle').textContent = `Analyzing ${file.name} - ${rawDataset.length} rows loaded.`;
+                        processNewDataset();
+                    } else {
+                        alert('Could not find data in uploaded CSV. Please check formatting.');
+                        document.getElementById('data-status-subtitle').textContent = 'Error parsing uploaded CSV.';
+                    }
+                }
+            });
+        }
+
+        function loadCSVDataText(csvText) {
+            Papa.parse(csvText, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    rawDataset = results.data;
+                    processNewDataset();
+                }
+            });
+        }
+
+        // Analyze and separate headers into classes
+        function processNewDataset() {
+            if (rawDataset.length === 0) return;
+            
+            // Extract raw keys
+            headers = Object.keys(rawDataset[0]);
+            
+            // Classify questions based on value patterns
+            categories = [];
+            openTexts = [];
+            
+            headers.forEach(header => {
+                if (header.toLowerCase() === 'timestamp') return;
+                
+                // Inspect values to determine format
+                let sampleVal = '';
+                for(let i=0; i<Math.min(rawDataset.length, 5); i++) {
+                    if (rawDataset[i][header]) {
+                        sampleVal = rawDataset[i][header].trim();
+                        break;
+                    }
+                }
+
+                // If values are short and categorical
+                const isSelectAll = header.includes('(Select all)');
+                const wordCount = sampleVal.split(' ').length;
+                
+                if (isSelectAll || wordCount <= 4 || sampleVal.toLowerCase() === 'yes' || sampleVal.toLowerCase() === 'no' || sampleVal.toLowerCase() === 'maybe') {
+                    categories.push({
+                        name: header,
+                        isSelectAll: isSelectAll
+                    });
+                } else {
+                    openTexts.push(header);
+                }
+            });
+
+            // Initialize global option filters controls
+            buildOptionFilterDropdowns();
+
+            // Populate Text analyzer columns
+            const textSelector = document.getElementById('textColumnSelect');
+            textSelector.innerHTML = '';
+            openTexts.forEach(header => {
+                const opt = document.createElement('option');
+                opt.value = header;
+                opt.textContent = header.substring(0, 70) + (header.length > 70 ? '...' : '');
+                textSelector.appendChild(opt);
+            });
+            // If no long text, populate with standard category options
+            if (openTexts.length === 0 && categories.length > 0) {
+                categories.forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat.name;
+                    opt.textContent = cat.name;
+                    textSelector.appendChild(opt);
+                });
+            }
+
+            // Apply filters (which triggers render cascade)
+            applyFilters();
+        }
+
+        // Build HTML select dropdowns dynamically for key categorical headers
+        function buildOptionFilterDropdowns() {
+            const container = document.getElementById('dynamicFiltersContainer');
+            container.innerHTML = ''; // Reset controls
+            
+            // Filter dropdown max: 3 headers (to save space)
+            const targetFilters = categories.slice(0, 3);
+            
+            targetFilters.forEach((cat, index) => {
+                const uniqueValues = new Set();
+                
+                rawDataset.forEach(row => {
+                    const val = row[cat.name];
+                    if (!val) return;
+                    if (cat.isSelectAll) {
+                        val.split(',').forEach(p => uniqueValues.add(p.trim()));
+                    } else {
+                        uniqueValues.add(val.trim());
+                    }
+                });
+
+                // Wrapper
+                const div = document.createElement('div');
+                div.className = 'w-48';
+
+                const label = document.createElement('label');
+                label.className = 'block text-[11px] font-bold tracking-wider uppercase text-slate-400 dark:text-slate-500 mb-1.5 truncate';
+                label.title = cat.name;
+                label.textContent = cat.name.replace(/^\d+\)/, '').trim();
+                div.appendChild(label);
+
+                const select = document.createElement('select');
+                select.id = `select-filter-${index}`;
+                select.setAttribute('data-header', cat.name);
+                select.setAttribute('data-select-all', cat.isSelectAll);
+                select.className = 'block w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-800 dark:text-slate-100 transition-theme';
+                select.onchange = () => applyFilters();
+
+                const optDefault = document.createElement('option');
+                optDefault.value = '';
+                optDefault.textContent = 'All Options';
+                select.appendChild(optDefault);
+
+                Array.from(uniqueValues).sort().forEach(val => {
+                    const opt = document.createElement('option');
+                    opt.value = val;
+                    opt.textContent = val;
+                    select.appendChild(opt);
+                });
+
+                div.appendChild(select);
+                container.appendChild(div);
+            });
+        }
+
+        // Multi-criteria client-side filter engine
+        function applyFilters() {
+            // Read inputs
+            activeFilters.keyword = document.getElementById('filterKeyword').value.trim().toLowerCase();
+            activeFilters.startDate = document.getElementById('filterStartDate').value;
+            activeFilters.endDate = document.getElementById('filterEndDate').value;
+            
+            activeFilters.categorical = {};
+            document.querySelectorAll('[id^="select-filter-"]').forEach(select => {
+                const header = select.getAttribute('data-header');
+                const val = select.value;
+                if (val) activeFilters.categorical[header] = val;
+            });
+
+            // Filter rawDataset rows
+            filteredDataset = rawDataset.filter(row => {
+                // 1) Keyword match
+                if (activeFilters.keyword) {
+                    const rowMatch = Object.values(row).some(cellVal => 
+                        cellVal.toString().toLowerCase().includes(activeFilters.keyword)
+                    );
+                    if (!rowMatch) return false;
+                }
+
+                // 2) Date Range checks
+                const timestampKey = headers.find(k => k.toLowerCase() === 'timestamp');
+                if (timestampKey && row[timestampKey]) {
+                    const rowDateStr = row[timestampKey].split(' ')[0]; // extracts YYYY-MM-DD
+                    if (activeFilters.startDate && rowDateStr < activeFilters.startDate) return false;
+                    if (activeFilters.endDate && rowDateStr > activeFilters.endDate) return false;
+                }
+
+                // 3) Categorical options
+                for(let header in activeFilters.categorical) {
+                    const filterVal = activeFilters.categorical[header];
+                    const rowVal = row[header];
+                    if (!rowVal) return false;
+                    
+                    const isSelectAll = header.includes('(Select all)');
+                    if (isSelectAll) {
+                        const parts = rowVal.split(',').map(s => s.trim());
+                        if (!parts.includes(filterVal)) return false;
+                    } else {
+                        if (rowVal.trim() !== filterVal) return false;
+                    }
+                }
+
+                return true;
+            });
+
+            // Update stats indicator
+            const notification = document.getElementById('filterNotification');
+            if (filteredDataset.length !== rawDataset.length) {
+                notification.classList.replace('hidden', 'flex');
+                document.getElementById('filtered-count-indicator').textContent = filteredDataset.length;
+                document.getElementById('total-count-indicator').textContent = rawDataset.length;
+            } else {
+                notification.classList.replace('flex', 'hidden');
+            }
+
+            // Trigger visual redraws
+            renderStatsKPI();
+            rebuildAllCharts();
+            
+            if (activeTab === 'explorer') {
+                renderDataTable();
+            } else if (activeTab === 'text-analysis') {
+                runTextAnalysis();
+            }
+        }
+
+        function resetFilters() {
+            document.getElementById('filterKeyword').value = '';
+            document.getElementById('filterStartDate').value = '';
+            document.getElementById('filterEndDate').value = '';
+            document.querySelectorAll('[id^="select-filter-"]').forEach(select => {
+                select.value = '';
+            });
+            applyFilters();
+        }
+
+        // Render Stats KPIs Cards
+        function renderStatsKPI() {
+            const total = filteredDataset.length;
+            document.getElementById('stat-total').textContent = total;
+
+            if (total === 0) {
+                document.getElementById('stat-infection').textContent = '0%';
+                document.getElementById('stat-outcomes').textContent = '0%';
+                document.getElementById('stat-concern').textContent = '-';
+                return;
+            }
+
+            // Find question matching infection rate: Q1
+            const q1Header = headers.find(k => k.includes('1)How often') || k.toLowerCase().includes('infection'));
+            if (q1Header) {
+                let highRiskCount = 0;
+                filteredDataset.forEach(row => {
+                    const ans = row[q1Header] ? row[q1Header].trim().toLowerCase() : '';
+                    if (ans === 'often' || ans === 'very often' || ans === 'sometimes') {
+                        highRiskCount++;
+                    }
+                });
+                document.getElementById('stat-infection').textContent = Math.round((highRiskCount / total) * 100) + '%';
+                document.getElementById('stat-infection-sub').textContent = 'Sometimes to Very often';
+            }
+
+            // Positive outcomes agreement: Q3
+            const q3Header = headers.find(k => k.includes('3)Do you think') || k.toLowerCase().includes('improve patient outcomes'));
+            if (q3Header) {
+                let yesCount = 0;
+                filteredDataset.forEach(row => {
+                    const ans = row[q3Header] ? row[q3Header].trim().toLowerCase() : '';
+                    if (ans === 'yes' || ans.startsWith('yes')) yesCount++;
+                });
+                document.getElementById('stat-outcomes').textContent = Math.round((yesCount / total) * 100) + '%';
+            }
+
+            // Top Concern: Q6
+            const q6Header = headers.find(k => k.includes('6)What would be') || k.toLowerCase().includes('concern'));
+            if (q6Header) {
+                let concernCounts = {};
+                filteredDataset.forEach(row => {
+                    const ans = row[q6Header] ? row[q6Header].trim() : '';
+                    if (ans) concernCounts[ans] = (concernCounts[ans] || 0) + 1;
+                });
+                let topConcern = '-';
+                let maxVal = 0;
+                for (let k in concernCounts) {
+                    if (concernCounts[k] > maxVal) {
+                        maxVal = concernCounts[k];
+                        topConcern = k;
+                    }
+                }
+                document.getElementById('stat-concern').textContent = topConcern;
+                document.getElementById('stat-concern').title = topConcern;
+            }
+        }
+
+        // Rebuild and draw all charts in the grid
+        function rebuildAllCharts() {
+            const grid = document.getElementById('dashboard-grid');
+            
+            // Clean grid template columns based on settings
+            grid.className = `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-${chartGridColumns} gap-6 print-grid`;
+
+            // Clear old instances
+            for (let id in chartInstances) {
+                if (chartInstances[id]) chartInstances[id].destroy();
+            }
+            chartInstances = {};
+            grid.innerHTML = ''; // Clean elements
+
+            if (filteredDataset.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full py-16 text-center text-slate-400 dark:text-slate-500 font-medium">
+                        <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-3 opacity-60"></i>
+                        No rows matching active filters.
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            // Generate card for each categoric column
+            categories.forEach((cat, index) => {
+                const chartId = `chart-canvas-${index}`;
+                const cardId = `chart-card-${index}`;
+                
+                // Aggregate values
+                let counts = {};
+                filteredDataset.forEach(row => {
+                    const ans = row[cat.name];
+                    if (!ans) return;
+                    
+                    if (cat.isSelectAll) {
+                        ans.split(',').forEach(part => {
+                            const trimmed = part.trim();
+                            if (trimmed) counts[trimmed] = (counts[trimmed] || 0) + 1;
+                        });
+                    } else {
+                        const trimmed = ans.trim();
+                        if (trimmed) counts[trimmed] = (counts[trimmed] || 0) + 1;
+                    }
+                });
+
+                // Generate visual structure
+                const wrapper = document.createElement('div');
+                wrapper.id = cardId;
+                wrapper.className = 'bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between transition-theme print-card';
+
+                // Display Title Clean
+                let displayTitle = cat.name.replace(/A smart wound patch is being developed.*?\n\s*/g, '');
+                displayTitle = displayTitle.replace(/\n/g, ' ').trim();
+                
+                // Shorten title for display, add tooltip
+                const shortTitle = displayTitle.length > 80 ? displayTitle.substring(0, 80) + '...' : displayTitle;
+
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'flex items-start justify-between gap-4 mb-4';
+
+                const titleEl = document.createElement('h3');
+                titleEl.className = 'text-xs font-bold text-slate-700 dark:text-slate-200 h-10 flex items-center line-clamp-2 leading-snug';
+                titleEl.textContent = shortTitle;
+                titleEl.title = cat.name;
+                headerDiv.appendChild(titleEl);
+
+                // Option selector wrapper
+                const controlDiv = document.createElement('div');
+                controlDiv.className = 'no-print shrink-0';
+                
+                const typeSelect = document.createElement('select');
+                typeSelect.className = 'bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] py-1 px-2 focus:outline-none focus:ring-1 focus:ring-brand-500 transition-theme';
+                typeSelect.onchange = (e) => updateSingleChartType(index, cat.name, counts, e.target.value);
+                
+                // Choose default chart type: pie/doughnut for options, bar for select-all
+                const defaultType = cat.isSelectAll ? 'bar' : 'pie';
+                
+                const types = [
+                    {val: 'pie', text: 'Pie'},
+                    {val: 'doughnut', text: 'Doughnut'},
+                    {val: 'polarArea', text: 'Polar'},
+                    {val: 'bar', text: 'Bar (Vert)'},
+                    {val: 'horizontalBar', text: 'Bar (Horiz)'},
+                    {val: 'line', text: 'Line'}
+                ];
+                
+                types.forEach(type => {
+                    const opt = document.createElement('option');
+                    opt.value = type.val;
+                    opt.textContent = type.text;
+                    if (type.val === defaultType) opt.selected = true;
+                    typeSelect.appendChild(opt);
+                });
+                
+                controlDiv.appendChild(typeSelect);
+                headerDiv.appendChild(controlDiv);
+                wrapper.appendChild(headerDiv);
+
+                // Chart Canvas Area
+                const canvasWrapper = document.createElement('div');
+                canvasWrapper.className = 'relative h-56 w-full flex justify-center items-center my-3';
+                const canvas = document.createElement('canvas');
+                canvas.id = chartId;
+                canvasWrapper.appendChild(canvas);
+                wrapper.appendChild(canvasWrapper);
+
+                // Card Footer Tools
+                const footerDiv = document.createElement('div');
+                footerDiv.className = 'no-print border-t border-slate-100 dark:border-slate-800 pt-3 flex items-center justify-between mt-2 text-[10px]';
+
+                const totalRowsText = document.createElement('span');
+                totalRowsText.className = 'text-slate-400 font-semibold';
+                totalRowsText.textContent = `${Object.keys(counts).length} answer options`;
+                footerDiv.appendChild(totalRowsText);
+
+                const dwnBtn = document.createElement('button');
+                dwnBtn.className = 'flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-lg transition-colors';
+                dwnBtn.onclick = () => downloadSingleChartImage(chartId, `chart_q${index + 1}.png`);
+                dwnBtn.innerHTML = `<i data-lucide="download" class="w-3 h-3"></i> Export PNG`;
+                footerDiv.appendChild(dwnBtn);
+                
+                wrapper.appendChild(footerDiv);
+                grid.appendChild(wrapper);
+
+                // Build initial chart
+                drawChartInstance(chartId, defaultType, counts);
+            });
+
+            // Re-render Lucide icons injected in buttons
+            lucide.createIcons();
+        }
+
+        // Draw individual Chart.js object
+        function drawChartInstance(canvasId, type, counts) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            const labels = Object.keys(counts);
+            const data = Object.values(counts);
+
+            // Configure colors
+            const backgroundColors = labels.map((_, i) => currentPalette[i % currentPalette.length]);
+            
+            // Text color configuration for Light/Dark modes
+            const isDark = document.documentElement.classList.contains('dark');
+            const labelColor = isDark ? '#94a3b8' : '#64748b';
+            const gridColor = isDark ? '#334155' : '#e2e8f0';
+
+            // Chart type configuration
+            let finalType = type;
+            let options = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 8,
+                            padding: 8,
+                            font: { family: 'Inter, sans-serif', size: 9 },
+                            color: labelColor
+                        }
+                    },
+                    customCanvasBackgroundColor: { color: isDark ? '#1e293b' : '#ffffff' }
+                }
+            };
+
+            // Custom configuration tweaks for Bar charts
+            if (type === 'bar' || type === 'horizontalBar' || type === 'line') {
+                const isHorizontal = type === 'horizontalBar';
+                finalType = isHorizontal ? 'bar' : type;
+
+                options.indexAxis = isHorizontal ? 'y' : 'x';
+                options.plugins.legend.display = false; // Hide redundant legend
+                
+                options.scales = {
+                    x: {
+                        grid: { color: gridColor },
+                        ticks: { color: labelColor, font: { size: 9 } }
+                    },
+                    y: {
+                        grid: { color: gridColor },
+                        ticks: { color: labelColor, font: { size: 9 } }
+                    }
+                };
+            }
+
+            const chart = new Chart(ctx, {
+                type: finalType,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: backgroundColors,
+                        borderColor: isDark ? '#0f172a' : '#ffffff',
+                        borderWidth: 1.5,
+                        hoverOffset: 6
+                    }]
+                },
+                options: options,
+                plugins: [whiteBackgroundPlugin]
+            });
+
+            chartInstances[canvasId] = chart;
+        }
+
+        // Live chart type swap
+        function updateSingleChartType(index, name, counts, selectedType) {
+            const chartId = `chart-canvas-${index}`;
+            
+            // Destroy active instance
+            if (chartInstances[chartId]) {
+                chartInstances[chartId].destroy();
+            }
+
+            // Draw new instance
+            drawChartInstance(chartId, selectedType, counts);
+        }
+
+        // Single Chart Image Downloader
+        function downloadSingleChartImage(canvasId, filename) {
+            const chart = chartInstances[canvasId];
+            if (!chart) return;
+            
+            const imageURL = chart.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = imageURL;
+            link.click();
+        }
+
+        // --- TAB 2: EXPLORER DATA TABLE LOGIC ---
+        function renderDataTable() {
+            const tableHead = document.getElementById('table-head-row');
+            const tableBody = document.getElementById('table-body');
+            
+            tableHead.innerHTML = '';
+            tableBody.innerHTML = '';
+
+            if (filteredDataset.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="${headers.length + 1}" class="py-12 text-center text-slate-400 dark:text-slate-500 font-medium">
+                            No matching records found.
+                        </td>
+                    </tr>
+                `;
+                document.getElementById('table-page-info').textContent = 'Showing 0 to 0 of 0 entries';
+                document.getElementById('table-pagination').innerHTML = '';
+                return;
+            }
+
+            // Render headers
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.className = 'py-3.5 px-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors truncate max-w-[200px] select-none';
+                th.onclick = () => sortTable(header);
+                
+                // Add sort chevron icons
+                let chevron = '';
+                if (tableSortColumn === header) {
+                    chevron = tableSortDir === 'asc' ? ' ↑' : ' ↓';
+                }
+                
+                th.textContent = header.replace(/^\d+\)/, '').trim() + chevron;
+                th.title = header;
+                tableHead.appendChild(th);
+            });
+
+            // Action header
+            const thAct = document.createElement('th');
+            thAct.className = 'py-3.5 px-4 text-center select-none w-20';
+            thAct.textContent = 'Action';
+            tableHead.appendChild(thAct);
+
+            // Sort data if needed
+            let displayData = [...filteredDataset];
+            if (tableSortColumn) {
+                displayData.sort((a, b) => {
+                    let valA = (a[tableSortColumn] || '').toString().toLowerCase();
+                    let valB = (b[tableSortColumn] || '').toString().toLowerCase();
+                    if (valA < valB) return tableSortDir === 'asc' ? -1 : 1;
+                    if (valA > valB) return tableSortDir === 'asc' ? 1 : -1;
+                    return 0;
+                });
+            }
+
+            // Paginate
+            const startIndex = (tablePage - 1) * tablePageSize;
+            const endIndex = Math.min(startIndex + tablePageSize, displayData.length);
+            const pageData = displayData.slice(startIndex, endIndex);
+
+            // Update page range metadata text
+            document.getElementById('table-page-info').textContent = `Showing ${startIndex + 1} to ${endIndex} of ${displayData.length} entries`;
+
+            // Draw rows
+            pageData.forEach((row, rowIndex) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors border-b border-slate-100 dark:border-slate-800';
+                
+                headers.forEach(header => {
+                    const td = document.createElement('td');
+                    td.className = 'py-3 px-4 truncate max-w-[220px] font-medium text-xs';
+                    const textContent = (row[header] || '').trim();
+                    td.title = textContent;
+                    
+                    // Highlight matching search keyword
+                    if (activeFilters.keyword && textContent.toLowerCase().includes(activeFilters.keyword)) {
+                        const regex = new RegExp(`(${escapeRegExp(activeFilters.keyword)})`, 'gi');
+                        td.innerHTML = textContent.replace(regex, '<mark class="bg-amber-200 dark:bg-amber-800 dark:text-white px-0.5 rounded">$1</mark>');
+                    } else {
+                        td.textContent = textContent;
+                    }
+                    tr.appendChild(td);
+                });
+
+                // Row action button
+                const tdAct = document.createElement('td');
+                tdAct.className = 'py-3 px-4 text-center';
+                
+                const inspectBtn = document.createElement('button');
+                inspectBtn.className = 'p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-brand-500 hover:text-white dark:hover:bg-brand-500 rounded-lg transition-colors text-slate-500 dark:text-slate-400';
+                inspectBtn.title = 'Inspect Full Record';
+                inspectBtn.onclick = () => showRowInspectorModal(row);
+                inspectBtn.innerHTML = '<i data-lucide="eye" class="w-3.5 h-3.5"></i>';
+                
+                tdAct.appendChild(inspectBtn);
+                tr.appendChild(tdAct);
+
+                tableBody.appendChild(tr);
+            });
+
+            // Rebuild Pagination buttons
+            buildPaginationControls(displayData.length);
+            lucide.createIcons();
+        }
+
+        // Sorting trigger
+        function sortTable(headerName) {
+            if (tableSortColumn === headerName) {
+                tableSortDir = tableSortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                tableSortColumn = headerName;
+                tableSortDir = 'asc';
+            }
+            tablePage = 1;
+            renderDataTable();
+        }
+
+        function changePageSize() {
+            tablePageSize = parseInt(document.getElementById('tablePageSize').value);
+            tablePage = 1;
+            renderDataTable();
+        }
+
+        // Helper to escape regex values
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function buildPaginationControls(totalRows) {
+            const container = document.getElementById('table-pagination');
+            container.innerHTML = '';
+            
+            const totalPages = Math.ceil(totalRows / tablePageSize);
+            if (totalPages <= 1) return;
+
+            // Prev Button
+            const prevBtn = document.createElement('button');
+            prevBtn.className = `p-1.5 border rounded-lg transition-theme ${tablePage === 1 ? 'opacity-50 cursor-not-allowed border-slate-200 dark:border-slate-800 text-slate-300' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'}`;
+            prevBtn.disabled = tablePage === 1;
+            prevBtn.onclick = () => { if (tablePage > 1) { tablePage--; renderDataTable(); } };
+            prevBtn.innerHTML = '<i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>';
+            container.appendChild(prevBtn);
+
+            // Page numbers logic (max 5 pages surrounding active page)
+            let start = Math.max(1, tablePage - 2);
+            let end = Math.min(totalPages, start + 4);
+            if (end - start < 4) {
+                start = Math.max(1, end - 4);
+            }
+
+            for(let i=start; i<=end; i++) {
+                const btn = document.createElement('button');
+                btn.className = `w-7 h-7 border rounded-lg transition-theme font-semibold flex items-center justify-center ${tablePage === i ? 'bg-brand-700 dark:bg-brand-500 text-white border-transparent' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'}`;
+                btn.textContent = i;
+                btn.onclick = () => { tablePage = i; renderDataTable(); };
+                container.appendChild(btn);
+            }
+
+            // Next Button
+            const nextBtn = document.createElement('button');
+            nextBtn.className = `p-1.5 border rounded-lg transition-theme ${tablePage === totalPages ? 'opacity-50 cursor-not-allowed border-slate-200 dark:border-slate-800 text-slate-300' : 'border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'}`;
+            nextBtn.disabled = tablePage === totalPages;
+            nextBtn.onclick = () => { if (tablePage < totalPages) { tablePage++; renderDataTable(); } };
+            nextBtn.innerHTML = '<i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>';
+            container.appendChild(nextBtn);
+        }
+
+        // Full record inspect modal
+        function showRowInspectorModal(rowData) {
+            // Create full Modal dynamic background overlay
+            const modalOverlay = document.createElement('div');
+            modalOverlay.className = 'fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4';
+            modalOverlay.id = 'modal-inspector';
+
+            const modalContent = document.createElement('div');
+            modalContent.className = 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh] transition-theme';
+
+            // Modal Header
+            const tKey = headers.find(k => k.toLowerCase() === 'timestamp');
+            const header = document.createElement('div');
+            header.className = 'p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50';
+            header.innerHTML = `
+                <div>
+                    <h3 class="font-outfit font-bold text-base text-slate-900 dark:text-white">Record Details</h3>
+                    <span class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Timestamp: ${(tKey ? rowData[tKey] : '') || 'N/A'}</span>
+                </div>
+                <button onclick="document.getElementById('modal-inspector').remove()" class="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            `;
+            modalContent.appendChild(header);
+
+            // Modal Body with keys
+            const body = document.createElement('div');
+            body.className = 'p-6 overflow-y-auto space-y-4';
+            
+            headers.forEach(header => {
+                if (tKey && header === tKey) return;
+                
+                const fieldDiv = document.createElement('div');
+                fieldDiv.className = 'space-y-1';
+                
+                const label = document.createElement('label');
+                label.className = 'block text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500';
+                label.textContent = header;
+                
+                const valDiv = document.createElement('div');
+                valDiv.className = 'text-xs font-semibold p-3.5 bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60 rounded-xl leading-relaxed text-slate-800 dark:text-slate-200';
+                valDiv.textContent = (rowData[header] || '').trim();
+                
+                fieldDiv.appendChild(label);
+                fieldDiv.appendChild(valDiv);
+                body.appendChild(fieldDiv);
+            });
+
+            modalContent.appendChild(body);
+            modalOverlay.appendChild(modalContent);
+            document.body.appendChild(modalOverlay);
+            
+            lucide.createIcons();
+        }
+
+        // --- TAB 3: QUALITATIVE TEXT ANALYSIS LOGIC ---
+        function runTextAnalysis() {
+            const targetCol = document.getElementById('textColumnSelect').value;
+            const container = document.getElementById('word-cloud-container');
+            const freqList = document.getElementById('word-frequency-list');
+            const feedDeck = document.getElementById('text-feed-deck');
+            
+            container.innerHTML = '';
+            freqList.innerHTML = '';
+            feedDeck.innerHTML = '';
+
+            if (filteredDataset.length === 0 || !targetCol) {
+                container.innerHTML = '<span class="text-slate-400">No records available.</span>';
+                document.getElementById('total-text-feed-rows').textContent = 0;
+                return;
+            }
+
+            // 1) Process Word Frequencies
+            let wordCounts = {};
+            let commentCards = [];
+
+            filteredDataset.forEach(row => {
+                const comment = row[targetCol] ? row[targetCol].trim() : '';
+                if (!comment) return;
+
+                commentCards.push(comment);
+
+                // Tokenize words, clean punctuation
+                const words = comment.toLowerCase()
+                    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"'’]/g, ' ')
+                    .split(/\s+/);
+                
+                words.forEach(word => {
+                    const cleaned = word.trim();
+                    if (cleaned && cleaned.length > 2 && !stopWords.includes(cleaned)) {
+                        wordCounts[cleaned] = (wordCounts[cleaned] || 0) + 1;
+                    }
+                });
+            });
+
+            // Update Feed Count Indicator
+            document.getElementById('total-text-feed-rows').textContent = commentCards.length;
+
+            // Sort words
+            const sortedWords = Object.keys(wordCounts).map(word => ({
+                text: word,
+                count: wordCounts[word]
+            })).sort((a, b) => b.count - a.count);
+
+            if (sortedWords.length === 0) {
+                container.innerHTML = '<span class="text-slate-400">No descriptive keywords found.</span>';
+            } else {
+                // Generate Tag Cloud (top 40 words)
+                const topWords = sortedWords.slice(0, 40);
+                
+                // Shuffle words to make cloud format
+                const shuffled = [...topWords].sort(() => Math.random() - 0.5);
+
+                const maxCount = Math.max(...topWords.map(w => w.count));
+                const minCount = Math.min(...topWords.map(w => w.count));
+
+                shuffled.forEach(word => {
+                    const tag = document.createElement('span');
+                    
+                    // Calc scale size (between text-xs and text-4xl)
+                    let scale = 1;
+                    if (maxCount !== minCount) {
+                        scale = 0.8 + ((word.count - minCount) / (maxCount - minCount)) * 1.5;
+                    }
+                    
+                    tag.style.transform = `scale(${scale})`;
+                    tag.className = 'inline-block origin-center px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-lg text-xs hover:bg-brand-500 hover:text-white cursor-help transition-all shadow-sm';
+                    tag.textContent = `${word.text} (${word.count})`;
+                    tag.title = `Occurs ${word.count} times`;
+                    container.appendChild(tag);
+                });
+
+                // Generate Rank List (Top 10)
+                sortedWords.slice(0, 10).forEach((word, rank) => {
+                    const row = document.createElement('div');
+                    row.className = 'flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800 text-xs font-semibold';
+                    row.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <span class="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] text-slate-500">${rank + 1}</span>
+                            <span class="text-slate-800 dark:text-slate-200 capitalize font-bold">${word.text}</span>
+                        </div>
+                        <span class="text-brand-500 font-bold">${word.count} times</span>
+                    `;
+                    freqList.appendChild(row);
+                });
+            }
+
+            // 2) Populate Comments feed deck
+            if (commentCards.length === 0) {
+                feedDeck.innerHTML = '<div class="col-span-full py-8 text-center text-slate-400">No descriptive answers.</div>';
+            } else {
+                commentCards.forEach(comment => {
+                    const card = document.createElement('div');
+                    card.className = 'p-4 border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 rounded-xl leading-relaxed text-xs font-medium text-slate-700 dark:text-slate-300 transition-theme hover:border-slate-300';
+                    card.textContent = comment;
+                    feedDeck.appendChild(card);
+                });
+            }
+        }
+
+        // --- CUSTOMIZER LAYOUT UTILITIES ---
+        function changeChartGridColumns(cols) {
+            chartGridColumns = cols;
+            
+            // Re-highlight Customizer buttons
+            document.querySelectorAll('[id^="grid-col-btn-"]').forEach(btn => {
+                btn.className = "px-4 py-2 border rounded-xl text-xs font-semibold transition-colors bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700";
+            });
+            const activeBtn = document.getElementById(`grid-col-btn-${cols}`);
+            if (activeBtn) {
+                activeBtn.className = "px-4 py-2 border rounded-xl text-xs font-semibold transition-colors bg-brand-700 dark:bg-brand-500 text-white border-transparent";
+            }
+            
+            // Rebuild
+            rebuildAllCharts();
+        }
+
+        // --- DATA EXPORTS UTILITIES ---
+        function downloadFilteredCSV() {
+            if (filteredDataset.length === 0) return;
+            const csv = Papa.unparse(filteredDataset);
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', 'filtered_survey_responses.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function downloadFilteredJSON() {
+            if (filteredDataset.length === 0) return;
+            const jsonStr = JSON.stringify(filteredDataset, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', 'filtered_survey_responses.json');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
