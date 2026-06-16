@@ -37,7 +37,7 @@
     <!-- Chart.js for premium visualizations -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- ChartDataLabels plugin for displaying percentages on charts -->
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     <!-- PapaParse for high-performance CSV parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <!-- Lucide Icons via CDN -->
@@ -1319,7 +1319,7 @@
                     }]
                 },
                 options: options,
-                plugins: [whiteBackgroundPlugin]
+                plugins: [whiteBackgroundPlugin, ChartDataLabels]
             });
 
             chartInstances[canvasId] = chart;
