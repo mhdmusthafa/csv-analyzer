@@ -1355,18 +1355,21 @@
         function renderDataTable() {
             const tableHead = document.getElementById('table-head-row');
             const tableBody = document.getElementById('table-body');
+            const cardContainer = document.getElementById('mobile-cards-container');
+            const isMobile = window.innerWidth < 768;
             
             tableHead.innerHTML = '';
             tableBody.innerHTML = '';
+            if (cardContainer) cardContainer.innerHTML = '';
 
             if (filteredDataset.length === 0) {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="${headers.length + 1}" class="py-12 text-center text-slate-400 dark:text-slate-500 font-medium">
-                            No matching records found.
-                        </td>
-                    </tr>
+                const emptyMsg = `
+                    <div class="py-12 text-center text-slate-400 dark:text-slate-500 font-medium">
+                        No matching records found.
+                    </div>
                 `;
+                tableBody.innerHTML = `<tr><td colspan="${headers.length + 1}">${emptyMsg}</td></tr>`;
+                if (cardContainer) cardContainer.innerHTML = emptyMsg;
                 document.getElementById('table-page-info').textContent = 'Showing 0 to 0 of 0 entries';
                 document.getElementById('table-pagination').innerHTML = '';
                 return;
