@@ -36,6 +36,8 @@
     </script>
     <!-- Chart.js for premium visualizations -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- ChartDataLabels plugin for displaying percentages on charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <!-- PapaParse for high-performance CSV parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <!-- Lucide Icons via CDN -->
@@ -458,45 +460,57 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <button onclick="applyColorPalettePreset('classic')" class="palette-preset-card p-4 border rounded-xl hover:border-brand-500 transition-colors text-left flex flex-col justify-between h-24 bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700">
                             <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Classic Medical</span>
-                            <div class="flex gap-1.5 mt-2">
-                                <span class="w-6 h-6 rounded bg-[#000000]"></span>
-                                <span class="w-6 h-6 rounded bg-[#154069]"></span>
-                                <span class="w-6 h-6 rounded bg-[#53739b]"></span>
-                                <span class="w-6 h-6 rounded bg-[#f35000]"></span>
-                                <span class="w-6 h-6 rounded bg-[#e2e8f0] border border-slate-300"></span>
+                            <div class="flex gap-1 mt-2">
+                                <span class="w-3.5 h-3.5 rounded bg-[#154069]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#2563eb]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#3b82f6]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#60a5fa]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#93c5fd]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#f35000]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#ff7833]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#ffa066]"></span>
                             </div>
                         </button>
 
                         <button onclick="applyColorPalettePreset('emerald')" class="palette-preset-card p-4 border rounded-xl hover:border-brand-500 transition-colors text-left flex flex-col justify-between h-24 bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700">
                             <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Forest Emerald</span>
-                            <div class="flex gap-1.5 mt-2">
-                                <span class="w-6 h-6 rounded bg-[#064e3b]"></span>
-                                <span class="w-6 h-6 rounded bg-[#059669]"></span>
-                                <span class="w-6 h-6 rounded bg-[#34d399]"></span>
-                                <span class="w-6 h-6 rounded bg-[#a7f3d0]"></span>
-                                <span class="w-6 h-6 rounded bg-[#f0fdf4]"></span>
+                            <div class="flex gap-1 mt-2">
+                                <span class="w-3.5 h-3.5 rounded bg-[#064e3b]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#047857]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#059669]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#10b981]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#34d399]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#6ee7b7]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#a7f3d0]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#0284c7]"></span>
                             </div>
                         </button>
 
                         <button onclick="applyColorPalettePreset('cyber')" class="palette-preset-card p-4 border rounded-xl hover:border-brand-500 transition-colors text-left flex flex-col justify-between h-24 bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700">
                             <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Neon Cyberpunk</span>
-                            <div class="flex gap-1.5 mt-2">
-                                <span class="w-6 h-6 rounded bg-[#0f172a]"></span>
-                                <span class="w-6 h-6 rounded bg-[#a855f7]"></span>
-                                <span class="w-6 h-6 rounded bg-[#06b6d4]"></span>
-                                <span class="w-6 h-6 rounded bg-[#f43f5e]"></span>
-                                <span class="w-6 h-6 rounded bg-[#facc15]"></span>
+                            <div class="flex gap-1 mt-2">
+                                <span class="w-3.5 h-3.5 rounded bg-[#a855f7]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#c084fc]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#06b6d4]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#22d3ee]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#f43f5e]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#fb7185]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#facc15]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#eab308]"></span>
                             </div>
                         </button>
 
                         <button onclick="applyColorPalettePreset('cool')" class="palette-preset-card p-4 border rounded-xl hover:border-brand-500 transition-colors text-left flex flex-col justify-between h-24 bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700">
                             <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Cool Tech</span>
-                            <div class="flex gap-1.5 mt-2">
-                                <span class="w-6 h-6 rounded bg-[#1e1b4b]"></span>
-                                <span class="w-6 h-6 rounded bg-[#4f46e5]"></span>
-                                <span class="w-6 h-6 rounded bg-[#0ea5e9]"></span>
-                                <span class="w-6 h-6 rounded bg-[#38bdf8]"></span>
-                                <span class="w-6 h-6 rounded bg-[#e0f2fe]"></span>
+                            <div class="flex gap-1 mt-2">
+                                <span class="w-3.5 h-3.5 rounded bg-[#1e1b4b]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#312e81]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#4f46e5]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#6366f1]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#818cf8]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#0ea5e9]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#38bdf8]"></span>
+                                <span class="w-3.5 h-3.5 rounded bg-[#06b6d4]"></span>
                             </div>
                         </button>
                     </div>
@@ -539,12 +553,12 @@
 
     <!-- JS LOGIC CODE -->
     <script>
-        // Custom color schemas
+        // Custom color schemas (8 vibrant, distinct colors per scheme, no plain black/white)
         const palettes = {
-            classic: ['#000000', '#154069', '#53739b', '#f35000', '#ffffff'],
-            emerald: ['#064e3b', '#059669', '#34d399', '#a7f3d0', '#f0fdf4'],
-            cyber: ['#0f172a', '#a855f7', '#06b6d4', '#f43f5e', '#facc15'],
-            cool: ['#1e1b4b', '#4f46e5', '#0ea5e9', '#38bdf8', '#e0f2fe']
+            classic: ['#154069', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#f35000', '#ff7833', '#ffa066'],
+            emerald: ['#064e3b', '#047857', '#059669', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#0284c7'],
+            cyber: ['#a855f7', '#c084fc', '#06b6d4', '#22d3ee', '#f43f5e', '#fb7185', '#facc15', '#eab308'],
+            cool: ['#1e1b4b', '#312e81', '#4f46e5', '#6366f1', '#818cf8', '#0ea5e9', '#38bdf8', '#06b6d4']
         };
 
         // Current application state parameters
@@ -607,6 +621,9 @@
 
         // --- APP INITIALIZER ---
         window.addEventListener('DOMContentLoaded', () => {
+            // Register ChartDataLabels plugin globally for Chart.js 3/4 compatibility
+            Chart.register(ChartDataLabels);
+
             // Setup custom palette rows on settings screen
             initCustomColorPickers();
             
@@ -630,11 +647,11 @@
             lucide.createIcons();
         });
 
-        // Initialize custom palette selectors input elements
+        // Initialize custom palette selectors input elements (8 pickers)
         function initCustomColorPickers() {
             const container = document.getElementById('customColorPickerRow');
             container.innerHTML = '';
-            for(let i=0; i<5; i++) {
+            for(let i=0; i<8; i++) {
                 const picker = document.createElement('input');
                 picker.type = 'color';
                 picker.className = 'w-10 h-10 rounded-lg cursor-pointer border border-slate-300 dark:border-slate-600 bg-transparent';
@@ -644,12 +661,12 @@
             }
         }
 
-        // Apply dynamic presets
+        // Apply dynamic presets (8 pickers)
         function applyColorPalettePreset(presetName) {
             if (palettes[presetName]) {
                 currentPalette = [...palettes[presetName]];
                 // Update pickers visual state
-                for(let i=0; i<5; i++) {
+                for(let i=0; i<8; i++) {
                     const picker = document.getElementById('color-picker-' + i);
                     if (picker) picker.value = currentPalette[i] || '#ffffff';
                 }
@@ -657,9 +674,9 @@
             }
         }
 
-        // Save custom colors from pickers
+        // Save custom colors from pickers (8 pickers)
         function saveCustomColors() {
-            for(let i=0; i<5; i++) {
+            for(let i=0; i<8; i++) {
                 const picker = document.getElementById('color-picker-' + i);
                 if (picker) currentPalette[i] = picker.value;
             }
@@ -1176,16 +1193,16 @@
                 wrapper.appendChild(footerDiv);
                 grid.appendChild(wrapper);
 
-                // Build initial chart
-                drawChartInstance(chartId, defaultType, counts);
+                // Build initial chart with isSelectAll support
+                drawChartInstance(chartId, defaultType, counts, cat.isSelectAll);
             });
 
             // Re-render Lucide icons injected in buttons
             lucide.createIcons();
         }
 
-        // Draw individual Chart.js object
-        function drawChartInstance(canvasId, type, counts) {
+        // Draw individual Chart.js object with percentages support
+        function drawChartInstance(canvasId, type, counts, isSelectAll = false) {
             const canvas = document.getElementById(canvasId);
             if (!canvas) return;
             const ctx = canvas.getContext('2d');
@@ -1200,6 +1217,9 @@
             const isDark = document.documentElement.classList.contains('dark');
             const labelColor = isDark ? '#94a3b8' : '#64748b';
             const gridColor = isDark ? '#334155' : '#e2e8f0';
+
+            // Calculate denominator for percentages
+            const totalForPercentage = isSelectAll ? filteredDataset.length : data.reduce((a, b) => a + b, 0);
 
             // Chart type configuration
             let finalType = type;
@@ -1216,7 +1236,35 @@
                             color: labelColor
                         }
                     },
-                    customCanvasBackgroundColor: { color: isDark ? '#1e293b' : '#ffffff' }
+                    customCanvasBackgroundColor: { color: isDark ? '#1e293b' : '#ffffff' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                let value = context.raw || 0;
+                                if (totalForPercentage === 0) return `${label}: ${value}`;
+                                let percentage = ((value / totalForPercentage) * 100).toFixed(1) + '%';
+                                return `${label}: ${value} (${percentage})`;
+                            }
+                        }
+                    },
+                    datalabels: {
+                        color: '#ffffff',
+                        font: {
+                            family: 'Inter, sans-serif',
+                            weight: 'bold',
+                            size: 10
+                        },
+                        formatter: (value) => {
+                            if (totalForPercentage === 0) return '';
+                            return ((value / totalForPercentage) * 100).toFixed(0) + '%';
+                        },
+                        display: (ctx) => {
+                            const value = ctx.dataset.data[ctx.dataIndex];
+                            if (totalForPercentage === 0) return false;
+                            return ((value / totalForPercentage) * 100) >= 4; // Hide small labels to avoid overlaps
+                        }
+                    }
                 }
             };
 
@@ -1237,6 +1285,24 @@
                         grid: { color: gridColor },
                         ticks: { color: labelColor, font: { size: 9 } }
                     }
+                };
+
+                // Override datalabels formatting for bar charts to display neatly outside
+                options.plugins.datalabels = {
+                    anchor: 'end',
+                    align: isHorizontal ? 'right' : 'top',
+                    color: labelColor,
+                    font: {
+                        family: 'Inter, sans-serif',
+                        weight: 'bold',
+                        size: 9
+                    },
+                    formatter: (value) => {
+                        if (totalForPercentage === 0) return '';
+                        let pct = ((value / totalForPercentage) * 100).toFixed(0) + '%';
+                        return `${value} (${pct})`;
+                    },
+                    display: true
                 };
             }
 
@@ -1268,8 +1334,9 @@
                 chartInstances[chartId].destroy();
             }
 
-            // Draw new instance
-            drawChartInstance(chartId, selectedType, counts);
+            // Draw new instance with selection context
+            const isSelectAll = name.includes('(Select all)');
+            drawChartInstance(chartId, selectedType, counts, isSelectAll);
         }
 
         // Single Chart Image Downloader
